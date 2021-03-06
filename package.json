@@ -1,0 +1,24 @@
+{
+  "name": "documentos-vaticanos-api",
+  "version": "0.1.0",
+  "description": "Documentos vaticanos",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafaelAngelRamirez/documentos-vaticanos-api.git"
+  },
+  "keywords": [
+    "vaticano",
+    "doctrina",
+    "fe"
+  ],
+  "author": "Rafael Ramirez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RafaelAngelRamirez/documentos-vaticanos-api/issues"
+  },
+  "homepage": "https://github.com/RafaelAngelRamirez/documentos-vaticanos-api#readme"
+}
