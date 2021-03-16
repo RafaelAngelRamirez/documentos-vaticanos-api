@@ -36,7 +36,7 @@ function prettyURL(texto) {
 }
 app.get("/", (req, res, next) => {
   Documento.find(obtenerBusqueda(req.query.termino))
-    .select("nombre indice descripcion")
+    .select("nombre indice descripcion url")
     .exec()
     .then(docs => res.send(docs))
     .catch(_ => next(_))
