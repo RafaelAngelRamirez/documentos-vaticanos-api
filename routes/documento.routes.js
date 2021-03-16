@@ -15,6 +15,25 @@ function obtenerBusqueda(termino) {
   return busqueda
 }
 
+// function eliminarDiacriticos(texto) {
+//   // https://es.stackoverflow.com/questions/62031/eliminar-signos-diacr%C3%ADticos-en-javascript-eliminar-tildes-acentos-ortogr%C3%A1ficos
+//   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+// }
+
+function prettyURL(texto) {
+  // Reemplaza los carácteres especiales | simbolos con un espacio
+  texto = texto
+    .replace(/[`~!@#$%^&*()_\-+=\[\]{};:'"\\|\/,.<>?\s]/g, " ")
+    .toLowerCase()
+
+  // Corta los espacios al inicio y al final del textoing
+  texto = texto.replace(/^\s+|\s+$/gm, "")
+
+  // Reemplaza el espacio con guión
+  texto = texto.replace(/\s+/g, "-")
+
+  return texto
+}
 app.get("/", (req, res, next) => {
   Documento.find(obtenerBusqueda(req.query.termino))
     .select("nombre indice descripcion")
@@ -23,7 +42,7 @@ app.get("/", (req, res, next) => {
     .catch(_ => next(_))
 })
 
-// Me aurre una operación.
+// Me aorre una operación. //La h es el chiste.
 app.put("/", (req, res, next) => {
   // Si no viene un id, creamos el nuevo documento.
   req.body["_id"] = req.body?._id ?? ObjectId()
@@ -32,6 +51,7 @@ app.put("/", (req, res, next) => {
   const update = {
     nombre: req.body.nombre,
     descripcion: req.body.descripcion,
+    url: prettyURL(req.body.nombre),
   }
   const options = {
     //   Si no existe el elemento crea uno nuevo.

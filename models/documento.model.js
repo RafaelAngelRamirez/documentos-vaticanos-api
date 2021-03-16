@@ -36,6 +36,7 @@ const DocumentoSchema = new Schema({
       puntos: [String],
     },
   ],
+  url:String,
   descripcion: String,
 })
 
