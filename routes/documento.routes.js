@@ -11,7 +11,6 @@ function obtenerBusqueda(termino) {
       return { [x]: { $regex: terminoLimpio, $options: "gi" } }
     }),
   }
-  console.log(busqueda)
   return busqueda
 }
 
@@ -36,6 +35,14 @@ function prettyURL(texto) {
 }
 app.get("/", (req, res, next) => {
   Documento.find(obtenerBusqueda(req.query.termino))
+    .select("nombre indice descripcion url")
+    .exec()
+    .then(docs => res.send(docs))
+    .catch(_ => next(_))
+})
+
+app.get("/url/:url", (req, res, next) => {
+  Documento.find({url:decodeURIComponent(req.params.url)})
     .select("nombre indice descripcion url")
     .exec()
     .then(docs => res.send(docs))
