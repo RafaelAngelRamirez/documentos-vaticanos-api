@@ -5,7 +5,9 @@ const port = process.env.PORT
 const mongoose = require("mongoose")
 const bodyParser = require("body-parser")
 const RUTAS = require("./routes/routes")
+const cors = require("cors")
 
+app.use(cors())
 app.use(bodyParser.json())
 
 mongoose

@@ -2,8 +2,21 @@ const app = require("express")()
 const Documento = require("../models/documento.model")
 const ObjectId = require("mongoose").Types.ObjectId
 
+function obtenerBusqueda(termino) {
+  const terminoLimpio = termino?.trim()
+  if (!terminoLimpio) return {}
+  const campos = ["nombre", "indice.nombre", "descripcion"]
+  const busqueda = {
+    $or: campos.map(x => {
+      return { [x]: { $regex: terminoLimpio, $options: "gi" } }
+    }),
+  }
+  console.log(busqueda)
+  return busqueda
+}
+
 app.get("/", (req, res, next) => {
-  Documento.find()
+  Documento.find(obtenerBusqueda(req.query.termino))
     .select("nombre indice descripcion")
     .exec()
     .then(docs => res.send(docs))
