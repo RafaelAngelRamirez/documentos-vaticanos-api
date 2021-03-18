@@ -110,7 +110,7 @@ app.put("/punto/nuevo", (req, res, next) => {
       // Buscamos dentro del texto para encontrar las referencias.
       if (!punto.contenido) throw "No se ha definido el contenido"
       const totalRef = punto.contenido.match(/(\[\+REF\+])/gm)?.length
-      console.log({ totalRef })
+  
 
       punto.referencias = new Array(!totalRef ? 0 : totalRef).fill(objeto)
       documento.puntos.push(punto)
@@ -133,7 +133,7 @@ app.put("/punto/modificar", (req, res, next) => {
       let totalRef = req.body.punto.contenido.match(/(\[\+REF\+])/gm)?.length
       totalRef = !totalRef ? 0 : totalRef
       const refExistentes = punto.referencias.length
-      console.log({ totalRef, refExistentes })
+  
 
       if (totalRef < refExistentes)
         throw "Hay menos referencias en el nuevo contenido que el actual. Eliminalas manualmente si quieres guardar menos referencias."
@@ -276,7 +276,6 @@ function obtenerSoloUnPunto(id, idPunto) {
 }
 
 function obtenerTodosLosPuntos(id) {
-  console.log("Todos los puntos")
   return Documento.findById(id)
     .select("puntos")
     .exec()
