@@ -42,11 +42,22 @@ app.get("/", (req, res, next) => {
 })
 
 app.get("/url/:url", (req, res, next) => {
-  Documento.find({url:decodeURIComponent(req.params.url)})
+  Documento.findOne({ url: decodeURIComponent(req.params.url) })
     .select("nombre indice descripcion url")
     .exec()
     .then(docs => res.send(docs))
     .catch(_ => next(_))
+})
+
+app.get("/id/:id/punto?/:idPunto?", (req, res, next) => {
+  const id = req.params.id
+  const idPunto = req.params.idPunto
+
+  const operacion = req.params.idPunto
+    ? obtenerSoloUnPunto(id, idPunto)
+    : obtenerTodosLosPuntos(id)
+
+  operacion.then(r => res.send(r)).catch(_ => next(_))
 })
 
 // Me aorre una operación. //La h es el chiste.
@@ -145,7 +156,7 @@ app.put("/punto/eliminar", (req, res, next) => {
     .exec()
     .then(documento => {
       if (!documento) throw "No existe el documento"
-      documento.puntos.pull(req.body.punto._id)
+      const a = documento.puntos.pull(req.body.punto._id)
       return documento.save()
     })
     .then(d => res.send(d))
@@ -243,17 +254,6 @@ app.put("/indice/eliminar", (req, res, next) => {
     .catch(_ => next(_))
 })
 
-app.get("/:id/punto?/:idPunto?", (req, res, next) => {
-  const id = req.params.id
-  const idPunto = req.params.idPunto
-
-  const operacion = req.params.idPunto
-    ? obtenerSoloUnPunto(id, idPunto)
-    : obtenerTodosLosPuntos(id)
-
-  operacion.then(r => res.send(r)).catch(_ => next(_))
-})
-
 function obtenerSoloUnPunto(id, idPunto) {
   return Documento.aggregate([
     { $match: { _id: ObjectId(id) } },
@@ -276,10 +276,11 @@ function obtenerSoloUnPunto(id, idPunto) {
 }
 
 function obtenerTodosLosPuntos(id) {
+  console.log("Todos los puntos")
   return Documento.findById(id)
     .select("puntos")
     .exec()
-    .then(x => x.puntos)
+    .then(x => x?.puntos ?? [])
 }
 
 module.exports = app
