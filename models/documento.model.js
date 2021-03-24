@@ -36,6 +36,7 @@ const DocumentoSchema = new Schema({
       puntos: [String],
     },
   ],
+  //Para buscar el documento con una url simple
   url:String,
   descripcion: String,
 })
