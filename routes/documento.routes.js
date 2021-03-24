@@ -145,9 +145,10 @@ app.put("/punto/modificar", (req, res, next) => {
       for (let i = 0; i < nuevasReferencias; i++) punto.referencias.push(objeto)
       return documento.save()
     })
-    .then(d => res.send(d))
+    .then(d => res.send(d.puntos.id(req.body.punto._id)))
     .catch(_ => next(_))
 })
+
 app.put("/punto/eliminar", (req, res, next) => {
   Documento.findById(req.body._id)
     .select("+puntos")
@@ -157,7 +158,7 @@ app.put("/punto/eliminar", (req, res, next) => {
       const a = documento.puntos.pull(req.body.punto._id)
       return documento.save()
     })
-    .then(d => res.send(d))
+    .then(d => res.send(req.body.punto._id))
     .catch(_ => next(_))
 })
 
