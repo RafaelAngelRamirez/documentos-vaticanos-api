@@ -178,20 +178,41 @@ app.put("/referencia/nueva", (req, res, next) => {
 })
 
 app.put("/referencia/modificar", (req, res, next) => {
-  Documento.findById(req.body._id)
-    .select("+puntos")
+  Documento.updateOne(
+    {
+      // Id del documento
+      _id: req.body._id,
+      // Id del punto
+      puntos: {
+        $elemMatch: {
+          _id: req.body.punto._id,
+          "referencias._id": req.body.punto.referencia._id,
+        },
+      },
+    },
+
+    {
+      // El $set es importante por que no estamos agregando datos, si no
+      // modificandolos.
+      $set: {
+        "puntos.$[punto].referencias.$[referencia]": {
+          descripcion: req.body.punto.referencia.descripcion,
+          url: req.body.punto.referencia.url,
+          local: req.body.punto.referencia.local,
+        },
+      },
+    },
+    {
+      arrayFilters: [
+        { "punto._id": req.body.punto._id },
+        { "referencia._id": req.body.punto.referencia._id },
+      ],
+    }
+  )
     .exec()
-    .then(documento => {
-      const referencia = documento.puntos
-        .id(req.body.punto._id)
-        .referencias.id(req.body.punto.referencia._id)
-      if (!referencia) throw "No existe la referencia"
-      referencia.descripcion = req.body.punto.referencia.descripcion
-      referencia.url = req.body.punto.referencia.url
-      referencia.local = req.body.punto.referencia.local
-      return documento.save()
+    .then(r => {
+      res.send()
     })
-    .then(r => res.send(r))
     .catch(_ => next(_))
 })
 
