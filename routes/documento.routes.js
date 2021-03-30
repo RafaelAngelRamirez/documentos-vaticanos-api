@@ -120,33 +120,31 @@ app.put("/punto/nuevo", (req, res, next) => {
 })
 
 app.put("/punto/modificar", (req, res, next) => {
-  Documento.findById(req.body._id)
-    .select("+puntos")
-    .exec()
-    .then(documento => {
-      if (!documento) throw "No existe el documento"
-      const punto = documento.puntos.id(req.body.punto._id)
-      if (!punto) throw "No existe el contenido"
+  Documento.updateOne(
+    {
+      _id: req.body._id,
 
-      // Validamos que siga habiendo la misma cantidad de referencias
-      let totalRef = req.body.punto.contenido.match(/(\[\+REF\+])/gm)?.length
-      totalRef = !totalRef ? 0 : totalRef
-      const refExistentes = punto.referencias.length
+      puntos: {
+        $elemMatch: {
+          _id: req.body.punto._id,
+        },
+      },
+    },
 
-      if (totalRef < refExistentes)
-        throw "Hay menos referencias en el nuevo contenido que el actual. Eliminalas manualmente si quieres guardar menos referencias."
+    {
+      // El $set es importante por que no estamos agregando datos, si no
+      // modificandolos.
+      $set: {
+        "puntos.$[punto].contenido": req.body.punto.contenido,
+      },
+    },
+    {
+      arrayFilters: [{ "punto._id": req.body.punto._id }],
+    }
+  )
 
-      punto.consecutivo = req.body.punto.consecutivo
-      punto.contenido = req.body.punto.contenido
-
-      // Nuevas referencias
-
-      const nuevasReferencias = totalRef - refExistentes
-      for (let i = 0; i < nuevasReferencias; i++) punto.referencias.push(objeto)
-      return documento.save()
-    })
-    .then(d => res.send(d.puntos.id(req.body.punto._id)))
-    .catch(_ => next(_))
+    .exec().then(r=> res.send())
+    .catch(_=>next(_))
 })
 
 app.put("/punto/eliminar", (req, res, next) => {
