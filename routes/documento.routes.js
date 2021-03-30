@@ -157,7 +157,7 @@ app.put("/punto/eliminar", (req, res, next) => {
       const a = documento.puntos.pull(req.body.punto._id)
       return documento.save()
     })
-    .then(d => res.send(req.body.punto._id))
+    .then(d => res.send())
     .catch(_ => next(_))
 })
 
@@ -321,10 +321,11 @@ function obtenerTodosLosPuntos(id, opciones = { limit: 30 }) {
     {
       $limit: opciones.limit ?? 30,
     },
-  ]).collation( {
-    locale: "en_US",
-    numericOrdering: true
-  })
+  ])
+    .collation({
+      locale: "en_US",
+      numericOrdering: true,
+    })
     .exec()
     .then(r => r ?? [])
 }
