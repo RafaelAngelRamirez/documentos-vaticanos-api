@@ -143,8 +143,9 @@ app.put("/punto/modificar", (req, res, next) => {
     }
   )
 
-    .exec().then(r=> res.send())
-    .catch(_=>next(_))
+    .exec()
+    .then(r => res.send())
+    .catch(_ => next(_))
 })
 
 app.put("/punto/eliminar", (req, res, next) => {
@@ -311,11 +312,19 @@ function obtenerTodosLosPuntos(id, opciones = { limit: 30 }) {
     {
       $replaceRoot: { newRoot: "$puntos" },
     },
+    {
+      $sort: {
+        consecutivo: 1,
+      },
+    },
 
     {
       $limit: opciones.limit ?? 30,
     },
-  ])
+  ]).collation( {
+    locale: "en_US",
+    numericOrdering: true
+  })
     .exec()
     .then(r => r ?? [])
 }
