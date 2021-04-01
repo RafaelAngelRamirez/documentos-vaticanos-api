@@ -115,7 +115,7 @@ app.put("/punto/nuevo", (req, res, next) => {
       documento.puntos.push(punto)
       return documento.save()
     })
-    .then(r => res.send(r))
+    .then(r => res.send())
     .catch(_ => next(_))
 })
 
@@ -144,7 +144,7 @@ app.put("/punto/modificar", (req, res, next) => {
   )
 
     .exec()
-    .then(r => res.send())
+    .then(r => res.send(req.body))
     .catch(_ => next(_))
 })
 
