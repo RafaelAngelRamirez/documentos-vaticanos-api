@@ -216,16 +216,31 @@ app.put("/referencia/modificar", (req, res, next) => {
 })
 
 app.put("/referencia/eliminar", (req, res, next) => {
-  Documento.findById(req.body._id)
-    .select("+puntos")
+  // Documento.findById(req.body._id)
+  //   .select("+puntos")
+  //   .exec()
+  //   .then(documento => {
+  //     documento.puntos
+  //       .id(req.body.punto._id)
+  //       .referencias.pull(req.body.punto.referencia._id)
+  //     return documento.save()
+  //   })
+  //   .then(d => res.send(d))
+  //   .catch(_ => next(_))
+
+  Documento.updateOne(
+    {},
+
+    {
+      // El $set es importante por que no estamos agregando datos, si no
+      // modificandolos.
+      $pull: { "puntos.referencias._id": req.body.punto.referencia._id },
+    }
+  )
     .exec()
-    .then(documento => {
-      documento.puntos
-        .id(req.body.punto._id)
-        .referencias.pull(req.body.punto.referencia._id)
-      return documento.save()
+    .then(r => {
+      res.send()
     })
-    .then(d => res.send(d))
     .catch(_ => next(_))
 })
 
