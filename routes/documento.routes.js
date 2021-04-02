@@ -169,7 +169,8 @@ app.put("/referencia/nueva", (req, res, next) => {
       if (!documento) throw "No existe el documento"
       const punto = documento.puntos.id(req.body.punto._id)
       if (!punto) throw "No existe el contenido"
-      punto.referencias.push(req.body.punto.referencia)
+      const referencia = { ...req.body.punto.referencia, _id: ObjectId() }
+      punto.referencias.push(referencia)
       return documento.save()
     })
     .then(r => res.send(r))
@@ -206,6 +207,8 @@ app.put("/referencia/modificar", (req, res, next) => {
         { "punto._id": req.body.punto._id },
         { "referencia._id": req.body.punto.referencia._id },
       ],
+
+      setDefaultOnInsert: true,
     }
   )
     .exec()
