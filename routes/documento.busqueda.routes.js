@@ -61,6 +61,13 @@ app.get("/", async (req, res, next) => {
             },
           },
         },
+
+        {
+          $group: {
+            _id: "$_id",
+            puntos: { $push: "$puntos" },
+          },
+        },
       ]).exec()
 
       resultado["puntosSeleccionados"] = puntosSeleccionados
@@ -77,10 +84,10 @@ function obtenerNumeroDePuntos(puntos) {
   // Debe tener la siguiente estructura:
   // 1,2-10,
 
-  if(!puntos) throw "Debes definir rangos de puntos"
+  if (!puntos) throw "Debes definir rangos de puntos"
 
   const grupos = puntos
-  //Separamos los grupos
+    //Separamos los grupos
     .split(",")
     //Si hay espacios los eliminamos
     .map(x => x.trim())
@@ -162,6 +169,13 @@ const query = opciones => {
     },
     {
       $skip: opciones.skip,
+    },
+
+    {
+      $group: {
+        _id: "$_id",
+        puntos: { $push: "$puntos" },
+      },
     },
   ]
 }
