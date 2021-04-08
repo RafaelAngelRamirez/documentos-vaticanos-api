@@ -1,23 +1,11 @@
 const app = require("express")()
 const Documento = require("../models/documento.model")
 const ObjectId = require("mongoose").Types.ObjectId
+const documentoBusquedaRoute = require("./documento.busqueda.routes")
+const utilidades = require("../utilidades/utilidades")
 
-function obtenerBusqueda(termino) {
-  const terminoLimpio = termino?.trim()
-  if (!terminoLimpio) return {}
-  const campos = ["nombre", "indice.nombre", "descripcion"]
-  const busqueda = {
-    $or: campos.map(x => {
-      return { [x]: { $regex: terminoLimpio, $options: "gi" } }
-    }),
-  }
-  return busqueda
-}
-
-// function eliminarDiacriticos(texto) {
-//   // https://es.stackoverflow.com/questions/62031/eliminar-signos-diacr%C3%ADticos-en-javascript-eliminar-tildes-acentos-ortogr%C3%A1ficos
-//   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-// }
+//Busquedas
+app.use(documentoBusquedaRoute)
 
 function prettyURL(texto) {
   // Reemplaza los carácteres especiales | simbolos con un espacio
@@ -33,13 +21,6 @@ function prettyURL(texto) {
 
   return texto
 }
-app.get("/", (req, res, next) => {
-  Documento.find(obtenerBusqueda(req.query.termino))
-    .select("nombre indice descripcion url")
-    .exec()
-    .then(docs => res.send(docs))
-    .catch(_ => next(_))
-})
 
 app.get("/url/:url", (req, res, next) => {
   Documento.findOne({ url: decodeURIComponent(req.params.url) })
