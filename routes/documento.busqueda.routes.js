@@ -2,118 +2,80 @@ const app = require("express")()
 const Documento = require("../models/documento.model")
 const ObjectId = require("mongoose").Types.ObjectId
 const utilidades = require("../utilidades/utilidades")
-async function busquedaDocumentos(req) {
-  return await Documento.find(obtenerBusqueda(req.query.termino))
-    .select("nombre indice descripcion url")
-    .exec()
-}
 
 app.get("/", async (req, res, next) => {
   try {
     req.query.termino = utilidades
       .limpiarDiacriticos(decodeURIComponent(req.query.termino))
       .trim()
+
     const documentos = await busquedaDocumentos(req)
-    const puntos = await busquedaPuntos_palabraCompleta(req)
-    const puntosTodasLasPalabrasParcial = await busquedaPuntos_todasLasPalabras(
-      req
-    )
-    const puntosTodasLasPalabrasExacto = await busquedaPuntos_todasLasPalabrasExacto(
-      req
-    )
-    const puntosParcial = await busquedaPuntos_parcial(req)
+    const resultado = { documentos }
+
+    for (const key of Object.keys(parametrosRegex)) {
+      resultado[key] = await Documento.aggregate(
+        query({ ...parametrosRegex[key], termino: req.query.termino })
+      ).exec()
+    }
 
     //Busqueda parcial
-    res.send({
-      puntosTodasLasPalabrasParcial,
-      puntosTodasLasPalabrasExacto,
-      documentos,
-      puntos,
-      puntosParcial,
-    })
+    res.send(resultado)
   } catch (error) {
     next(error)
   }
 })
 
-async function busquedaPuntos_palabraCompleta(req) {
-  //Busqueda palabras completas
-  return await Documento.aggregate([
-    {
-      $project: {
-        _id: 1,
-        puntos: 1,
-      },
-    },
-    separarTermino_palabraCompleta(req.query.termino),
-
-    {
-      $unwind: "$puntos",
-    },
-
-    separarTermino_palabraCompleta(req.query.termino),
-    {
-     $unset: "puntos._contenido"
-    },
-  ]).exec()
+async function busquedaDocumentos(req) {
+  return await Documento.find(obtenerBusqueda(req.query.termino))
+    .select("nombre indice descripcion url")
+    .exec()
 }
 
-async function busquedaPuntos_parcial(req) {
-  //Busqueda palabras parciales
-  return await Documento.aggregate([
-    {
-      $project: {
-        _id: 1,
-        puntos: 1,
-      },
-    },
-    separarTermino_coincidenciaParcial(req.query.termino),
-    {
-      $unwind: "$puntos",
-    },
-    separarTermino_coincidenciaParcial(req.query.termino),
-    {
-     $unset: "puntos._contenido"
-    },
-  ]).exec()
+const parametrosRegex = {
+  palabraCompleta: {
+    tipo: "or",
+    completo: true,
+  },
+  palabraParcial: {
+    tipo: "or",
+    completo: false,
+  },
+  todosLosTerminosParcial: {
+    tipo: "and",
+    completo: false,
+  },
+  todosLosTerminosExactos: {
+    tipo: "and",
+    completo: true,
+  },
 }
 
-async function busquedaPuntos_todasLasPalabras(req) {
-  return await Documento.aggregate([
+const query = opciones => {
+  return [
     {
       $project: {
         _id: 1,
         puntos: 1,
       },
     },
-    separarTermino_contieneTodosLosTerminos(req.query.termino),
-    {
-      $unwind: "$puntos",
-    },
-    separarTermino_contieneTodosLosTerminos(req.query.termino),
-    {
-     $unset: "puntos._contenido"
-    },
-  ]).exec()
-}
+    regex(opciones),
 
-async function busquedaPuntos_todasLasPalabrasExacto(req) {
-  return await Documento.aggregate([
-    {
-      $project: {
-        _id: 1,
-        puntos: 1,
-      },
-    },
-    separarTermino_contieneTodosLosTerminosExactos(req.query.termino),
     {
       $unwind: "$puntos",
     },
-    separarTermino_contieneTodosLosTerminosExactos(req.query.termino),
+
+    regex(opciones),
     {
-     $unset: "puntos._contenido"
+      $unset: "puntos._contenido",
     },
-  ]).exec()
+
+    {
+      $limit: opciones.limit,
+    },
+    {
+      $skip: opciones.skip,
+    },
+  ]
 }
 
 function obtenerBusqueda(termino) {
@@ -128,61 +90,31 @@ function obtenerBusqueda(termino) {
   return busqueda
 }
 
-function separarTermino_palabraCompleta(termino) {
-  const d = { $match: { $or: [] } }
+function regex(op = { tipo: "or", termino: "", completo: false }) {
+  //Construimos el match por tipo. AND || OR
+  const d = { $match: { [`$${op.tipo}`]: [] } }
+
+  //Si es completo buscamos coincidencia exacta con la palabra
+  const completo = termino => "(?:\\W|^)(\\Q" + termino + "\\E)(?:\\W|$)"
+  //Si es incompleto buscamos coincidencia parcial con la palabra
+  const incompleto = termino => termino
+
+  //Construimos la estructura dentro del AND | OR
   const estructura = termino => {
     return {
+      //Buscamos dentro del contenido sin diacriticos
       "puntos._contenido": {
-        $regex: "(?:\\W|^)(\\Q" + termino + "\\E)(?:\\W|$)",
-        $options: "i",
-      },
-    }
-  }
-  termino.split(",").forEach(x => d.$match.$or.push(estructura(x)))
-  return d
-}
-
-function separarTermino_coincidenciaParcial(termino) {
-  const d = { $match: { $or: [] } }
-  const estructura = termino => {
-    return {
-      "puntos._contenido": {
-        $regex: termino,
-        $options: "i",
-      },
-    }
-  }
-
-  termino.split(",").forEach(x => d.$match.$or.push(estructura(x)))
-  return d
-}
-
-function separarTermino_contieneTodosLosTerminos(termino) {
-  const d = { $match: { $and: [] } }
-  const estructura = termino => {
-    return {
-      "puntos._contenido": {
-        $regex: termino,
+        //Distiguimos si quiere completo o no
+        $regex: op.completo ? completo(termino) : incompleto(termino),
         $options: "i",
       },
     }
   }
 
-  termino.split(",").forEach(x => d.$match.$and.push(estructura(x)))
-  return d
-}
-function separarTermino_contieneTodosLosTerminosExactos(termino) {
-  const d = { $match: { $and: [] } }
-  const estructura = termino => {
-    return {
-      "puntos._contenido": {
-        $regex: "(?:\\W|^)(\\Q" + termino + "\\E)(?:\\W|$)",
-        $options: "i",
-      },
-    }
-  }
-
-  termino.split(",").forEach(x => d.$match.$and.push(estructura(x)))
+  //Creamos una query por cada termino según el tipo.
+  op.termino
+    .split(",")
+    .forEach(x => d.$match[`$${op.tipo}`].push(estructura(x)))
   return d
 }
 
