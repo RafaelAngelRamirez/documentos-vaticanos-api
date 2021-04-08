@@ -1,16 +1,38 @@
 const documentoRoutes = require("./documento.routes")
 const app = require("express")()
-
+const utilidades = require("../utilidades/utilidades")
 app.use("/documento", documentoRoutes)
 
 app.post("/ingresar-documentos", (req, res, next) => {
+  console.log(process.env.NODE_ENV)
+  if (process.env.NODE_ENV !== "development")
+    return res.status(500).send("NO MODO DESARROLLO")
+
+  const mongoose = require("mongoose")
+
+  const coleccion = mongoose.connection.collections["documentos"]
+
+  if (coleccion)
+    coleccion.drop(function (err) {
+      if (err) return next(err)
+      console.log("collection dropped")
+      agregarDatos(req, res, next)
+    })
+  else agregarDatos(req, res, next)
+})
+
+function agregarDatos(req, res, next) {
   // Cargamos los ficheros
   const Documento = require("../models/documento.model")
   let nombre = i => `../docs-json/documento-${i}.json`
   let puntos = []
 
   for (let i = 1; i <= 6; i++) {
-    puntos.push(...require(nombre(i)))
+    const datos = require(nombre(i)).map(x => {
+      x["_contenido"] = utilidades.limpiarDiacriticos(x.contenido)
+      return x
+    })
+    puntos.push(...datos)
   }
 
   let doc = new Documento({
@@ -26,6 +48,6 @@ app.post("/ingresar-documentos", (req, res, next) => {
       res.send(r)
     })
     .catch(_ => next(_))
-})
+}
 
 module.exports = app

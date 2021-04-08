@@ -11,6 +11,9 @@ const DocumentoSchema = new Schema({
           required: [true, "Debes definir el numero de punto o el consecutivo"],
         },
         contenido: { type: String, required: true },
+        //Este solo se utiliza para guardar los datos sin
+        // diacriticos. Por defecto no se selecciona
+        _contenido: { type: String, required: true, select: false },
 
         // Debe respetar el orden de aparicion en el texto.
         referencias: [
@@ -37,8 +40,10 @@ const DocumentoSchema = new Schema({
     },
   ],
   //Para buscar el documento con una url simple
-  url:String,
+  url: String,
   descripcion: String,
 })
+
+DocumentoSchema.index({ "puntos.contenido": "text" })
 
 module.exports = mongoose.model("documento", DocumentoSchema)
