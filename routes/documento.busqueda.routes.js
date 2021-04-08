@@ -15,10 +15,11 @@ app.get("/", async (req, res, next) => {
     const skip = req.query.skip ?? 0
 
     //Buscamos las coincidencias en documentos sin puntos
-    const documentos = await busquedaDocumentos(req)
+    const documentos = await busquedaDocumentos(req, { limit, skip })
+    const documentos_total = await busquedaDocumentos(req, { contar: true })
 
     //Almacenamos el resultado
-    const resultado = { documentos }
+    const resultado = { documentos, documentos_total }
 
     if (req.query.termino) {
       //Buscamos por terminos
@@ -29,6 +30,14 @@ app.get("/", async (req, res, next) => {
             termino: req.query.termino,
             limit,
             skip,
+          })
+        ).exec()
+
+        resultado[key + "_total"] = await Documento.aggregate(
+          query({
+            ...parametrosRegex[key],
+            termino: req.query.termino,
+            contar: true,
           })
         ).exec()
       }
@@ -120,7 +129,12 @@ function obtenerNumeroDePuntos(puntos) {
   )
 }
 
-async function busquedaDocumentos(req) {
+async function busquedaDocumentos(req, opciones = { contar: false }) {
+  if (opciones.contar) {
+    return await Documento.find(
+      obtenerBusqueda(req.query.termino)
+    ).countDocuments()
+  }
   return await Documento.find(obtenerBusqueda(req.query.termino))
     .select("nombre indice descripcion url")
     .exec()
@@ -146,7 +160,7 @@ const parametrosRegex = {
 }
 
 const query = opciones => {
-  return [
+  const lista = [
     {
       $project: {
         _id: 1,
@@ -163,21 +177,28 @@ const query = opciones => {
     {
       $unset: "puntos._contenido",
     },
-
-    {
-      $limit: opciones.limit,
-    },
-    {
-      $skip: opciones.skip,
-    },
-
-    {
-      $group: {
-        _id: "$_id",
-        puntos: { $push: "$puntos" },
-      },
-    },
   ]
+
+  if (!opciones.contar) {
+    lista.push(
+      ...[
+        {
+          $limit: opciones.limit,
+        },
+        {
+          $skip: opciones.skip,
+        },
+        {
+          $group: {
+            _id: "$_id",
+            puntos: { $push: "$puntos" },
+          },
+        },
+      ]
+    )
+  } else lista.push({ $count: "total" })
+
+  return lista
 }
 
 function obtenerBusqueda(termino) {
