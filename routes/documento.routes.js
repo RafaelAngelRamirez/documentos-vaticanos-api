@@ -102,7 +102,7 @@ app.delete("/eliminar/:id", (req, res, next) => {
 
 app.put("/punto/nuevo", (req, res, next) => {
   Documento.findById(req.body._id)
-    .select("+puntos")
+    .select("+puntos +puntos._contenido")
     .exec()
     .then(documento => {
       if (!documento) throw "No existe el documento"
@@ -110,6 +110,7 @@ app.put("/punto/nuevo", (req, res, next) => {
       // Buscamos dentro del texto para encontrar las referencias.
       if (!punto.contenido) throw "No se ha definido el contenido"
       const totalRef = punto.contenido.match(/(\[\+REF\+])/gm)?.length
+      punto._contenido = utilidades.limpiarDiacriticos(punto.contenido)
 
       punto.referencias = new Array(!totalRef ? 0 : totalRef).fill(objeto)
       documento.puntos.push(punto)
@@ -136,6 +137,9 @@ app.put("/punto/modificar", (req, res, next) => {
       // modificandolos.
       $set: {
         "puntos.$[punto].contenido": req.body.punto.contenido,
+        "puntos.$[punto]._contenido": utilidades.limpiarDiacriticos(
+          req.body.punto.contenido
+        ),
       },
     },
     {
