@@ -20,24 +20,98 @@ app.get("/", async (req, res, next) => {
     //Almacenamos el resultado
     const resultado = { documentos }
 
-    //Buscamos por terminos
-    for (const key of Object.keys(parametrosRegex)) {
-      resultado[key] = await Documento.aggregate(
-        query({
-          ...parametrosRegex[key],
-          termino: req.query.termino,
-          limit,
-          skip,
-        })
-      ).exec()
+    if (req.query.termino) {
+      //Buscamos por terminos
+      for (const key of Object.keys(parametrosRegex)) {
+        resultado[key] = await Documento.aggregate(
+          query({
+            ...parametrosRegex[key],
+            termino: req.query.termino,
+            limit,
+            skip,
+          })
+        ).exec()
+      }
+    }
+
+    // Buscamos por puntos
+    if (req.query.puntos) {
+      const puntosSeleccionados = await Documento.aggregate([
+        {
+          $project: {
+            _id: 1,
+            puntos: 1,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            "puntos._contenido": 0,
+          },
+        },
+
+        {
+          $unwind: "$puntos",
+        },
+
+        {
+          $match: {
+            "puntos.consecutivo": {
+              $in: obtenerNumeroDePuntos(req.query.puntos),
+            },
+          },
+        },
+      ]).exec()
+
+      resultado["puntosSeleccionados"] = puntosSeleccionados
     }
 
     //Busqueda parcial
-    res.send({ resultado })
+    res.send(resultado)
   } catch (error) {
     next(error)
   }
 })
+
+function obtenerNumeroDePuntos(puntos) {
+  // Debe tener la siguiente estructura:
+  // 1,2-10,
+
+  if(!puntos) throw "Debes definir rangos de puntos"
+
+  const grupos = puntos
+  //Separamos los grupos
+    .split(",")
+    //Si hay espacios los eliminamos
+    .map(x => x.trim())
+    //Obtenemos un solo arreglo expandiendo todos los grupos
+    // 1 => 1
+    // 4-9 => 4,5,6,7,8,9
+    // [1,4,5,6,7,8,9]
+    .reduce((pre, cur) => {
+      //Si es un rango debe contener-
+      if (cur.includes("-")) {
+        const valores = cur.split("-")
+        let inicio = valores[0] * 1
+        const fin = valores[1] * 1
+
+        for (let i = inicio; i <= fin; i++) {
+          pre.push(i)
+        }
+      } else pre.push(cur)
+      return pre
+    }, [])
+
+  return Array.from(
+    new Set(
+      grupos
+        //Lo devolvemos ordenados y en tipo string
+        .map(x => x * 1)
+        .sort((a, b) => a - b)
+        .map(x => x + "")
+    )
+  )
+}
 
 async function busquedaDocumentos(req) {
   return await Documento.find(obtenerBusqueda(req.query.termino))
