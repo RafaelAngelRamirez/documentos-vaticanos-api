@@ -4,8 +4,7 @@ const ObjectId = require("mongoose").Types.ObjectId
 const utilidades = require("../utilidades/utilidades")
 
 app.get("/", async (req, res, next) => {
-  try
-  {
+  try {
     // Limpiamos los diacriticos del termino de busqueda
     req.query.termino = utilidades
       .limpiarDiacriticos(decodeURIComponent(req.query.termino))
