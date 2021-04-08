@@ -4,22 +4,37 @@ const ObjectId = require("mongoose").Types.ObjectId
 const utilidades = require("../utilidades/utilidades")
 
 app.get("/", async (req, res, next) => {
-  try {
+  try
+  {
+    // Limpiamos los diacriticos del termino de busqueda
     req.query.termino = utilidades
       .limpiarDiacriticos(decodeURIComponent(req.query.termino))
       .trim()
 
+    // Paginacion
+    const limit = req.query.limit ?? 50
+    const skip = req.query.skip ?? 0
+
+    //Buscamos las coincidencias en documentos sin puntos
     const documentos = await busquedaDocumentos(req)
+
+    //Almacenamos el resultado
     const resultado = { documentos }
 
+    //Buscamos por terminos
     for (const key of Object.keys(parametrosRegex)) {
       resultado[key] = await Documento.aggregate(
-        query({ ...parametrosRegex[key], termino: req.query.termino })
+        query({
+          ...parametrosRegex[key],
+          termino: req.query.termino,
+          limit,
+          skip,
+        })
       ).exec()
     }
 
     //Busqueda parcial
-    res.send(resultado)
+    res.send({ resultado })
   } catch (error) {
     next(error)
   }
@@ -32,6 +47,14 @@ async function busquedaDocumentos(req) {
 }
 
 const parametrosRegex = {
+  todosLosTerminosExactos: {
+    tipo: "and",
+    completo: true,
+  },
+  todosLosTerminosParcial: {
+    tipo: "and",
+    completo: false,
+  },
   palabraCompleta: {
     tipo: "or",
     completo: true,
@@ -39,14 +62,6 @@ const parametrosRegex = {
   palabraParcial: {
     tipo: "or",
     completo: false,
-  },
-  todosLosTerminosParcial: {
-    tipo: "and",
-    completo: false,
-  },
-  todosLosTerminosExactos: {
-    tipo: "and",
-    completo: true,
   },
 }
 
@@ -114,7 +129,7 @@ function regex(op = { tipo: "or", termino: "", completo: false }) {
   //Creamos una query por cada termino según el tipo.
   op.termino
     .split(",")
-    .forEach(x => d.$match[`$${op.tipo}`].push(estructura(x)))
+    .forEach(x => d.$match[`$${op.tipo}`].push(estructura(x.trim())))
   return d
 }
 
