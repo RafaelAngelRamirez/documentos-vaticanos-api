@@ -10,13 +10,26 @@ app.get("/", async (req, res, next) => {
       .limpiarDiacriticos(decodeURIComponent(req.query.termino))
       .trim()
 
+    if (req.query?.documentos) {
+      req.query.documentos = req.query.documentos
+        .split(",")
+        .map(x => ObjectId(x))
+    }
+
     // Paginacion
     const limit = req.query.limit ?? 50
     const skip = req.query.skip ?? 0
 
     //Buscamos las coincidencias en documentos sin puntos
-    const documentos = await busquedaDocumentos(req, { limit, skip })
-    const documentos_total = await busquedaDocumentos(req, { contar: true })
+    const documentos = await busquedaDocumentos(req, {
+      limit,
+      skip,
+      documentos: req.query.documentos,
+    })
+    const documentos_total = await busquedaDocumentos(req, {
+      contar: true,
+      documentos: req.query.documentos,
+    })
 
     //Almacenamos el resultado
     const resultado = { documentos, documentos_total }
@@ -24,12 +37,15 @@ app.get("/", async (req, res, next) => {
     if (req.query.termino) {
       //Buscamos por terminos
       for (const key of Object.keys(parametrosRegex)) {
+        if (!req.query.opciones?.includes(key)) continue
+
         resultado[key] = await Documento.aggregate(
           query({
             ...parametrosRegex[key],
             termino: req.query.termino,
             limit,
             skip,
+            documentos: req.query.documentos,
           })
         ).exec()
 
@@ -38,6 +54,7 @@ app.get("/", async (req, res, next) => {
             ...parametrosRegex[key],
             termino: req.query.termino,
             contar: true,
+            documentos: req.query.documentos,
           })
         ).exec()
       }
@@ -132,10 +149,10 @@ function obtenerNumeroDePuntos(puntos) {
 async function busquedaDocumentos(req, opciones = { contar: false }) {
   if (opciones.contar) {
     return await Documento.find(
-      obtenerBusqueda(req.query.termino)
+      obtenerBusqueda(req.query.termino, opciones)
     ).countDocuments()
   }
-  return await Documento.find(obtenerBusqueda(req.query.termino))
+  return await Documento.find(obtenerBusqueda(req.query.termino, opciones))
     .select("nombre indice descripcion url")
     .exec()
 }
@@ -160,24 +177,36 @@ const parametrosRegex = {
 }
 
 const query = opciones => {
-  const lista = [
-    {
-      $project: {
-        _id: 1,
-        puntos: 1,
+  const lista = []
+
+  if (opciones.documentos) {
+    lista.push({ $match: { _id: { $in: opciones.documentos } } })
+    console.log(lista[0].$match._id.$in)
+  }
+
+  lista.push(
+    ...[
+      {
+        $project: {
+          _id: 1,
+          nombre: 1,
+          descripcion: 1,
+          indice: 1,
+          puntos: 1,
+        },
       },
-    },
-    regex(opciones),
+      regex(opciones),
 
-    {
-      $unwind: "$puntos",
-    },
+      {
+        $unwind: "$puntos",
+      },
 
-    regex(opciones),
-    {
-      $unset: "puntos._contenido",
-    },
-  ]
+      regex(opciones),
+      {
+        $unset: "puntos._contenido",
+      },
+    ]
+  )
 
   if (!opciones.contar) {
     lista.push(
@@ -190,8 +219,21 @@ const query = opciones => {
         },
         {
           $group: {
-            _id: "$_id",
+            _id: {
+              _id: "$_id",
+              nombre: "$nombre",
+              descripcion: "$descripcion",
+              indice: "$indice",
+            },
             puntos: { $push: "$puntos" },
+          },
+        },
+        {
+          $addFields: {
+            _id: "$_id._id",
+            nombre: "$_id.nombre",
+            descripcion: "$_id.descripcion",
+            indice: "$_id.indice",
           },
         },
       ]
@@ -201,7 +243,7 @@ const query = opciones => {
   return lista
 }
 
-function obtenerBusqueda(termino) {
+function obtenerBusqueda(termino, opciones) {
   const terminoLimpio = termino?.trim()
   if (!terminoLimpio) return {}
   const campos = ["nombre", "indice.nombre", "descripcion"]
@@ -210,6 +252,11 @@ function obtenerBusqueda(termino) {
       return { [x]: { $regex: terminoLimpio, $options: "gi" } }
     }),
   }
+
+  if (opciones.documentos) {
+    busqueda["$and"] = [{ _id: { $in: opciones.documentos } }]
+  }
+
   return busqueda
 }
 
