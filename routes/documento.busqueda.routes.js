@@ -217,10 +217,10 @@ const query = opciones => {
     lista.push(
       ...[
         {
-          $limit: opciones.limit,
+          $skip: opciones.skip,
         },
         {
-          $skip: opciones.skip,
+          $limit: opciones.limit,
         },
         {
           $group: {
@@ -245,6 +245,7 @@ const query = opciones => {
     )
   } else lista.push({ $count: "total" })
 
+  console.log(lista)
   return lista
 }
 
