@@ -17,8 +17,10 @@ app.get("/", async (req, res, next) => {
     }
 
     // Paginacion
-    const limit = (req.query.limit ?? 50) * 1
+    const limit = (req.query.limit ?? 30) * 1
     const skip = (req.query.skip ?? 0) * 1
+
+    console.log(req.query)
 
     //Buscamos las coincidencias en documentos sin puntos
     const documentos = await busquedaDocumentos(req, {
