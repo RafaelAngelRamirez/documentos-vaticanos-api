@@ -57,6 +57,9 @@ app.get("/", async (req, res, next) => {
             documentos: req.query.documentos,
           })
         ).exec()
+
+        //Quitamos el arreglo a los totales
+        resultado[key + "_total"] = resultado[key + "_total"]?.pop().total ?? 0
       }
     }
 
