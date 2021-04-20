@@ -3,23 +3,34 @@ const app = require("express")()
 const utilidades = require("../utilidades/utilidades")
 app.use("/documento", documentoRoutes)
 
-app.post("/ingresar-documentos", (req, res, next) => {
-  console.log(process.env.NODE_ENV)
-  if (process.env.NODE_ENV !== "development")
-    return res.status(500).send("NO MODO DESARROLLO")
+app.post(
+  "/ingresar-documentos",
 
-  const mongoose = require("mongoose")
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.send(403)
+    }
+    return next()
+  },
 
-  const coleccion = mongoose.connection.collections["documentos"]
+  (req, res, next) => {
+    console.log(process.env.NODE_ENV)
+    if (process.env.NODE_ENV !== "development")
+      return res.status(500).send("NO MODO DESARROLLO")
 
-  if (coleccion)
-    coleccion.drop(function (err) {
-      if (err) return next(err)
-      console.log("collection dropped")
-      agregarDatos(req, res, next)
-    })
-  else agregarDatos(req, res, next)
-})
+    const mongoose = require("mongoose")
+
+    const coleccion = mongoose.connection.collections["documentos"]
+
+    if (coleccion)
+      coleccion.drop(function (err) {
+        if (err) return next(err)
+        console.log("collection dropped")
+        agregarDatos(req, res, next)
+      })
+    else agregarDatos(req, res, next)
+  }
+)
 
 function agregarDatos(req, res, next) {
   // Cargamos los ficheros

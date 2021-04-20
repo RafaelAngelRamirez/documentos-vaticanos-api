@@ -41,6 +41,13 @@ app.get("/id/:id/punto?/:idPunto?", (req, res, next) => {
   operacion.then(r => res.send(r)).catch(_ => next(_))
 })
 
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.send(403)
+  }
+  return next()
+})
+
 // Me aorre una operación. //La h es el chiste.
 app.put("/", (req, res, next) => {
   // Si no viene un id, creamos el nuevo documento.
