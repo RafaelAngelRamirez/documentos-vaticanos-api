@@ -67,41 +67,16 @@ app.get("/", async (req, res, next) => {
 
     // Buscamos por puntos
     if (req.query.puntos) {
-      const puntosSeleccionados = await Documento.aggregate([
-        {
-          $project: {
-            _id: 1,
-            puntos: 1,
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            "puntos._contenido": 0,
-          },
-        },
+      const puntosSeleccionados = await Documento.aggregate(
+        obtenerPuntos(false, { limit, skip, puntos: req.query.puntos })
+      ).exec()
 
-        {
-          $unwind: "$puntos",
-        },
+      const puntosSeleccionados_total = await Documento.aggregate(
+        obtenerPuntos(true, { puntos: req.query.puntos })
+      ).exec()
 
-        {
-          $match: {
-            "puntos.consecutivo": {
-              $in: obtenerNumeroDePuntos(req.query.puntos),
-            },
-          },
-        },
-
-        {
-          $group: {
-            _id: "$_id",
-            puntos: { $push: "$puntos" },
-          },
-        },
-      ]).exec()
-
-      resultado["puntosSeleccionados"] = puntosSeleccionados
+      resultado["puntos"] = puntosSeleccionados
+      resultado["puntos_total"] = puntosSeleccionados_total?.pop()?.total ?? 0
     }
 
     //Busqueda parcial
@@ -110,6 +85,73 @@ app.get("/", async (req, res, next) => {
     next(error)
   }
 })
+
+function obtenerPuntos(contar, opciones) {
+  let arreglo = [
+    {
+      $project: {
+        _id: 1,
+        nombre: 1,
+        descripcion: 1,
+        indice: 1,
+        puntos: 1,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        "puntos._contenido": 0,
+      },
+    },
+
+    {
+      $unwind: "$puntos",
+    },
+
+    {
+      $match: {
+        "puntos.consecutivo": {
+          $in: obtenerNumeroDePuntos(opciones.puntos),
+        },
+      },
+    },
+  ]
+
+  if (contar) arreglo.push({ $count: "total" })
+  else
+    arreglo.push(
+      ...[
+        {
+          $skip: opciones.skip,
+        },
+        {
+          $limit: opciones.limit,
+        },
+
+        {
+          $group: {
+            _id: {
+              _id: "$_id",
+              nombre: "$nombre",
+              descripcion: "$descripcion",
+              indice: "$indice",
+            },
+            puntos: { $push: "$puntos" },
+          },
+        },
+        {
+          $addFields: {
+            _id: "$_id._id",
+            nombre: "$_id.nombre",
+            descripcion: "$_id.descripcion",
+            indice: "$_id.indice",
+          },
+        },
+      ]
+    )
+
+  return arreglo
+}
 
 function obtenerNumeroDePuntos(puntos) {
   // Debe tener la siguiente estructura:
