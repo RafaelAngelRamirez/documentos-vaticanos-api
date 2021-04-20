@@ -61,7 +61,7 @@ app.get("/", async (req, res, next) => {
         ).exec()
 
         //Quitamos el arreglo a los totales
-        resultado[key + "_total"] = resultado[key + "_total"]?.pop().total ?? 0
+        resultado[key + "_total"] = resultado[key + "_total"]?.pop()?.total ?? 0
       }
     }
 
