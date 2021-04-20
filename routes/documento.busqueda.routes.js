@@ -20,8 +20,6 @@ app.get("/", async (req, res, next) => {
     const limit = (req.query.limit ?? 30) * 1
     const skip = (req.query.skip ?? 0) * 1
 
-    console.log(req.query)
-
     //Buscamos las coincidencias en documentos sin puntos
     const documentos = await busquedaDocumentos(req, {
       limit,
@@ -228,7 +226,6 @@ const query = opciones => {
 
   if (opciones.documentos) {
     lista.push({ $match: { _id: { $in: opciones.documentos } } })
-    console.log(lista[0].$match._id.$in)
   }
 
   lista.push(
@@ -287,7 +284,6 @@ const query = opciones => {
     )
   } else lista.push({ $count: "total" })
 
-  console.log(lista)
   return lista
 }
 
