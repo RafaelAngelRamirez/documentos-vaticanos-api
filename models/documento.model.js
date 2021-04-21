@@ -6,6 +6,8 @@ const DocumentoSchema = new Schema({
     select: false,
     type: [
       {
+
+        revisado: Boolean,
         consecutivo: {
           type: String,
           required: [true, "Debes definir el numero de punto o el consecutivo"],

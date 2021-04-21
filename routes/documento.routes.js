@@ -153,6 +153,35 @@ app.put("/punto/eliminar", (req, res, next) => {
     .catch(_ => next(_))
 })
 
+app.put("/punto/revisado", (req, res, next) => {
+  Documento.updateOne(
+    {
+      _id: req.body._id,
+
+      puntos: {
+        $elemMatch: {
+          _id: req.body.punto._id,
+        },
+      },
+    },
+
+    {
+      // El $set es importante por que no estamos agregando datos, si no
+      // modificandolos.
+      $set: {
+        "puntos.$[punto].revisado": req.body.punto.revisado,
+      },
+    },
+    {
+      arrayFilters: [{ "punto._id": req.body.punto._id }],
+    }
+  )
+
+    .exec()
+    .then(r => res.send(req.body))
+    .catch(_ => next(_))
+})
+
 app.put("/referencia/nueva", (req, res, next) => {
   Documento.findById(req.body._id)
     .select("+puntos")
