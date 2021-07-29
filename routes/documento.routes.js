@@ -48,6 +48,28 @@ app.use((req, res, next) => {
   return next()
 })
 
+app.put("/fix", (req, res, next) => {
+  Documento.findOne()
+    .select("+puntos")
+    .then(documento => {
+      documento.puntos.forEach(x => {
+        x._contenido = utilidades.limpiarDiacriticos(x.contenido)
+      })
+
+      documento._descripcion = utilidades.limpiarDiacriticos(
+        documento.descripcion
+      )
+
+      documento._nombre = utilidades.limpiarDiacriticos(documento.nombre)
+
+      return documento.save()
+    })
+    .then(respuesta => {
+      res.send(respuesta)
+    })
+    .catch(_ => next(_))
+})
+
 // Me aorre una operación. //La h es el chiste.
 app.put("/", (req, res, next) => {
   // Si no viene un id, creamos el nuevo documento.
@@ -56,9 +78,12 @@ app.put("/", (req, res, next) => {
   const query = { _id: req.body._id }
   const update = {
     nombre: req.body.nombre,
+    _nombre: utilidades.limpiarDiacriticos(req.body.nombre),
     descripcion: req.body.descripcion,
-    url: prettyURL(req.body.nombre),
+    _descripcion: utilidades.limpiarDiacriticos(req.body.descripcion),
+    url: utilidades.limpiarDiacriticos(prettyURL(req.body.nombre)),
   }
+
   const options = {
     //   Si no existe el elemento crea uno nuevo.
     upsert: true,
@@ -136,7 +161,9 @@ app.put("/punto/modificar", (req, res, next) => {
   )
 
     .exec()
-    .then(r => res.send(req.body))
+    .then(r => {
+      res.send(req.body)
+    })
     .catch(_ => next(_))
 })
 

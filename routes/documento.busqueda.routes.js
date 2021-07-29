@@ -90,7 +90,9 @@ function obtenerPuntos(contar, opciones) {
       $project: {
         _id: 1,
         nombre: 1,
+        _nombre: 1,
         descripcion: 1,
+        _descripcion: 1,
         indice: 1,
         puntos: 1,
       },
@@ -98,7 +100,7 @@ function obtenerPuntos(contar, opciones) {
     {
       $project: {
         _id: 1,
-        "puntos._contenido": 0,
+        "puntos._contenido": 1,
       },
     },
 
@@ -131,7 +133,9 @@ function obtenerPuntos(contar, opciones) {
             _id: {
               _id: "$_id",
               nombre: "$nombre",
+              _nombre: "$_nombre",
               descripcion: "$descripcion",
+              _descripcion: "$_descripcion",
               indice: "$indice",
             },
             puntos: { $push: "$puntos" },
@@ -141,7 +145,9 @@ function obtenerPuntos(contar, opciones) {
           $addFields: {
             _id: "$_id._id",
             nombre: "$_id.nombre",
+            _nombre: "$_id._nombre",
             descripcion: "$_id.descripcion",
+            _descripcion: "$_id._descripcion",
             indice: "$_id.indice",
           },
         },
@@ -198,7 +204,7 @@ async function busquedaDocumentos(req, opciones = { contar: false }) {
     ).countDocuments()
   }
   return await Documento.find(obtenerBusqueda(req.query.termino, opciones))
-    .select("nombre indice descripcion url")
+    .select("nombre _nombre indice descripcion _descripcion url")
     .exec()
 }
 
@@ -234,7 +240,9 @@ const query = opciones => {
         $project: {
           _id: 1,
           nombre: 1,
+          _nombre: 1,
           descripcion: 1,
+          _descripcion: 1,
           indice: 1,
           puntos: 1,
         },
@@ -246,9 +254,6 @@ const query = opciones => {
       },
 
       regex(opciones),
-      {
-        $unset: "puntos._contenido",
-      },
     ]
   )
 
@@ -266,7 +271,9 @@ const query = opciones => {
             _id: {
               _id: "$_id",
               nombre: "$nombre",
+              _nombre: "$_nombre",
               descripcion: "$descripcion",
+              _descripcion: "$_descripcion",
               indice: "$indice",
             },
             puntos: { $push: "$puntos" },
@@ -276,7 +283,9 @@ const query = opciones => {
           $addFields: {
             _id: "$_id._id",
             nombre: "$_id.nombre",
+            _nombre: "$_id._nombre",
             descripcion: "$_id.descripcion",
+            _descripcion: "$_id._descripcion",
             indice: "$_id.indice",
           },
         },
@@ -290,7 +299,13 @@ const query = opciones => {
 function obtenerBusqueda(termino, opciones) {
   const terminoLimpio = termino?.trim()
   if (!terminoLimpio) return {}
-  const campos = ["nombre", "indice.nombre", "descripcion"]
+  const campos = [
+    "nombre",
+    "_nombre",
+    "indice.nombre",
+    "descripcion",
+    "_descripcion",
+  ]
   const busqueda = {
     $or: campos.map(x => {
       return { [x]: { $regex: terminoLimpio, $options: "gi" } }

@@ -2,11 +2,11 @@ const mongoose = require("mongoose")
 const Schema = mongoose.Schema
 const DocumentoSchema = new Schema({
   nombre: { type: String, required: [true, "El nombre es necesario"] },
+  _nombre: String,
   puntos: {
     select: false,
     type: [
       {
-
         revisado: Boolean,
         consecutivo: {
           type: String,
@@ -14,8 +14,8 @@ const DocumentoSchema = new Schema({
         },
         contenido: { type: String, required: true },
         //Este solo se utiliza para guardar los datos sin
-        // diacriticos. Por defecto no se selecciona
-        _contenido: { type: String, required: true, select: false },
+        // diacriticos y para resaltar donde hay acentos.
+        _contenido: String,
 
         // Debe respetar el orden de aparicion en el texto.
         referencias: [
@@ -44,6 +44,8 @@ const DocumentoSchema = new Schema({
   //Para buscar el documento con una url simple
   url: String,
   descripcion: String,
+  //Lo mismo pero sin diacriticos
+  _descripcion: { type: String, selected: false },
 })
 
 DocumentoSchema.index({ "puntos.contenido": "text" })
