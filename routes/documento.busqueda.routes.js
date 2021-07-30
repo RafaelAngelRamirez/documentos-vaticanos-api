@@ -64,7 +64,8 @@ app.get("/", async (req, res, next) => {
     }
 
     // Buscamos por puntos
-    if (req.query.puntos) {
+    if (req.query.puntos)
+    {
       const puntosSeleccionados = await Documento.aggregate(
         obtenerPuntos(false, { limit, skip, puntos: req.query.puntos })
       ).exec()
@@ -72,9 +73,13 @@ app.get("/", async (req, res, next) => {
       const puntosSeleccionados_total = await Documento.aggregate(
         obtenerPuntos(true, { puntos: req.query.puntos })
       ).exec()
+      
+
 
       resultado["puntos"] = puntosSeleccionados
       resultado["puntos_total"] = puntosSeleccionados_total?.pop()?.total ?? 0
+
+
     }
 
     //Busqueda parcial
@@ -97,12 +102,13 @@ function obtenerPuntos(contar, opciones) {
         puntos: 1,
       },
     },
-    {
-      $project: {
-        _id: 1,
-        "puntos._contenido": 1,
-      },
-    },
+    // {
+    //   $project: {
+    //     _id: 1,
+    //     "puntos._contenido": 1,
+    //     "puntos.contenido": 1,
+    //   },
+    // },
 
     {
       $unwind: "$puntos",
